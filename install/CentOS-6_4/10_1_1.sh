@@ -116,7 +116,7 @@ yum -y install sudo wget vim make zip unzip git chkconfig nano
 
 # Set some installation defaults/auto assignments
 fqdn=`/bin/hostname`
-publicip=`wget -qO- http://api.zpanelcp.com/ip.txt`
+publicip=`wget -qO- https://wtfismyip.com/text`
 
 #a selection list for the time zone is not better now?
 yum -y -q install tzdata &>/dev/null
