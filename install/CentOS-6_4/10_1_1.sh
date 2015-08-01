@@ -99,9 +99,6 @@ echo -e "# install please consider reinstalling without them.         #"
 echo -e "#                                                            #"
 echo -e "##############################################################"
 
-# Set some installation defaults/auto assignments
-fqdn=`/bin/hostname`
-publicip=`wget -qO- http://api.zpanelcp.com/ip.txt`
 
 # Lets check that the user wants to continue first...
 while true; do
@@ -111,6 +108,15 @@ read -e -p "Would you like to continue (y/n)? " yn
 		[Nn]* ) exit;
 	esac
 done
+
+echo -e "Installing Minimum Requirements wget vim make zip unzip git chkconfig nano"
+
+# Install some standard utility packages required by the installer and/or WBI.
+yum -y install sudo wget vim make zip unzip git chkconfig nano
+
+# Set some installation defaults/auto assignments
+fqdn=`/bin/hostname`
+publicip=`wget -qO- http://api.zpanelcp.com/ip.txt`
 
 #a selection list for the time zone is not better now?
 yum -y -q install tzdata &>/dev/null
@@ -210,9 +216,6 @@ rpm -qa
 # Removal of conflicting packages and services prior to ZPX installation.
 service sendmail stop
 yum -y remove bind-chroot
-
-# Install some standard utility packages required by the installer and/or WBI.
-yum -y install sudo wget vim make zip unzip git chkconfig nano
 
 
 # We now clone the WBIPanel software from GitHub
