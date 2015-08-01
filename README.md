@@ -1,4 +1,4 @@
-WBI Panel BETA Installers
+WBI Panel Alpha Installers (Installation Not Recommended)
 =================
 
 Welcome to the WBIPanel installation and upgrade script Git repository, this provides a central place to store, version and distribute WBIPanel installers and upgrade scripts from.
