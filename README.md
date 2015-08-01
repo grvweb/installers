@@ -1,4 +1,4 @@
-WBI Panel Installers
+WBI Panel BETA Installers
 =================
 
 Welcome to the WBIPanel installation and upgrade script Git repository, this provides a central place to store, version and distribute WBIPanel installers and upgrade scripts from.
@@ -11,17 +11,17 @@ The new installers and upgrade scripts enable you to install/upgrade  WBIPanel d
 
 Automatic Installation for CentOS 6.3+ is as simple as...
 
-```bash <(curl -Ss https://raw.github.com/grvweb/installers/master/install/CentOS-6_4/10_1_1.sh)```
+```bash <(curl -Ss https://raw.github.com/grvweb/installers/master/install/CentOS-6_4/master.sh)```
 
 Manual Installation for CentOS 6.3+ is
 
 ```yum -y install wget```
 
-```wget https://raw.github.com/grvweb/installers/master/install/CentOS-6_4/10_1_1.sh```
+```wget https://raw.github.com/grvweb/installers/master/install/CentOS-6_4/master.sh```
 
-```chmod 777 10_1_1.sh```
+```chmod 777 master.sh```
 
-```./10_1_1.sh``` ```
+```./master.sh```
 
 
 Advanced users may wish to install or update WBIPanelx 10.1.1 using our CentOS only repository. Full instructions can be found [here](https://github.com/grvweb/installers/tree/master/install/CentOS/6)
