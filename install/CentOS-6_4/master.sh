@@ -3,7 +3,7 @@
 # OS VERSION: CentOS 6.4+ Minimal
 # ARCH: 32bit + 64bit
 
-WBI_VERSION= master
+WBI_VERSION = 'master'
 
 # Official ZPanel Automated Installation Script
 # =============================================
