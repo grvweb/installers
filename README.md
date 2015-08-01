@@ -21,7 +21,7 @@ Manual Installation for CentOS 6.3+ is
 
 ```chmod 777 master.sh```
 
-```./master.sh```
+```./master.sh````
 
 
 Advanced users may wish to install or update WBIPanelx 10.1.1 using our CentOS only repository. Full instructions can be found [here](https://github.com/grvweb/installers/tree/master/install/CentOS/6)
