@@ -9,9 +9,19 @@ The new installers and upgrade scripts enable you to install/upgrade  WBIPanel d
 
 > The following commands are published on the official WBIPanel download page.
 
-Installation for CentOS 6.3+ is as simple as...
+Automatic Installation for CentOS 6.3+ is as simple as...
 
 ```bash <(curl -Ss https://raw.github.com/grvweb/installers/master/install/CentOS-6_4/10_1_1.sh)```
+
+Manual Installation for CentOS 6.3+ is
+
+```yum -y install wget```
+
+```wget https://raw.github.com/grvweb/installers/master/install/CentOS-6_4/10_1_1.sh```
+
+```chmod 777 10_1_1.sh```
+
+```./10_1_1.sh```
 
 ...and to upgrade your server (for example from WBIPanel 10.1.0 to 10.1.1):-
 
