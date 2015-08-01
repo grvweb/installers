@@ -3,7 +3,7 @@
 # OS VERSION: CentOS 6.4+ Minimal
 # ARCH: 32bit + 64bit
 
-ZPX_VERSION=10.1.1
+WBI_VERSION=10.1.1
 
 # Official ZPanel Automated Installation Script
 # =============================================
@@ -85,10 +85,10 @@ passwordgen() {
 
 # Display the 'welcome' splash/user warning info..
 echo -e "##############################################################"
-echo -e "# Welcome to the Official ZPanelX Installer for CentOS 6.4   #"
+echo -e "# Welcome to the Official WBIPanel Installer for CentOS 6.4  #"
 echo -e "#                                                            #"
 echo -e "# Please make sure your VPS provider hasn't pre-installed    #"
-echo -e "# any packages required by ZPanelX.                          #"
+echo -e "# any packages required by WBIPanel.                         #"
 echo -e "#                                                            #"
 echo -e "# If you are installing on a physical machine where the OS   #"
 echo -e "# has been installed by yourself please make sure you only   #"
@@ -121,12 +121,12 @@ while true; do
 	echo -e "Find your timezone from : http://php.net/manual/en/timezones.php e.g Europe/London"
 	tzselect
 	tz=`cat /etc/timezone`
-	echo -e "Enter the FQDN you will use to access ZPanel on your server."
+	echo -e "Enter the FQDN you will use to access WBIPanel on your server."
 	echo -e "- It MUST be a sub-domain of you main domain, it MUST NOT be your main domain only. Example: panel.yourdomain.com"
 	echo -e "- Remember that the sub-domain ('panel' in the example) MUST be setup in your DNS nameserver."
-	read -e -p "FQDN for zpanel: " -i $fqdn fqdn
+	read -e -p "FQDN for WBIPanel: " -i $fqdn fqdn
 	read -e -p "Enter the public (external) server IP: " -i $publicip publicip
-	read -e -p "ZPanel is now ready to install, do you wish to continue (y/n)" yn
+	read -e -p "WBIPanel is now ready to install, do you wish to continue (y/n)" yn
 	case $yn in
 		[Yy]* ) break;;
 		[Nn]* ) exit;
@@ -211,18 +211,18 @@ rpm -qa
 service sendmail stop
 yum -y remove bind-chroot
 
-# Install some standard utility packages required by the installer and/or ZPX.
-yum -y install sudo wget vim make zip unzip git chkconfig
+# Install some standard utility packages required by the installer and/or WBI.
+yum -y install sudo wget vim make zip unzip git chkconfig nano
 
 
-# We now clone the ZPX software from GitHub
-echo "Downloading ZPanel, Please wait, this may take several minutes, the installer will continue after this is complete!"
+# We now clone the WBIPanel software from GitHub
+echo "Downloading WBIPanel, Please wait, this may take several minutes, the installer will continue after this is complete!"
 git clone https://github.com/grvweb/WBIpanelx.git
 cd zpanelx/
-git checkout $ZPX_VERSION
-mkdir ../zp_install_cache/
-git checkout-index -a -f --prefix=../zp_install_cache/
-cd ../zp_install_cache/
+git checkout $WBI_VERSION
+mkdir ../wbi_install_cache/
+git checkout-index -a -f --prefix=../wbi_install_cache/
+cd ../wbi_install_cache/
 
 # Lets pull in all the required updates etc.
 rpm --import https://fedoraproject.org/static/0608B895.txt
@@ -439,21 +439,21 @@ service atd restart
 
 # We'll now remove the temporary install cache.
 cd ../
-rm -rf zp_install_cache/ zpanelx/
+rm -rf wbi_install_cache/ zpanelx/
 
 # Advise the user that ZPanel is now installed and accessible.
 echo -e "##############################################################" &>/dev/tty
-echo -e "# Congratulations ZpanelX has now been installed on your     #" &>/dev/tty
+echo -e "# Congratulations WBIpanel has now been installed on your    #" &>/dev/tty
 echo -e "# server. Please review the log file left in /root/ for      #" &>/dev/tty
 echo -e "# any errors encountered during installation.                #" &>/dev/tty
 echo -e "#                                                            #" &>/dev/tty
 echo -e "# Save the following information somewhere safe:             #" &>/dev/tty
 echo -e "# MySQL Root Password    : $password" &>/dev/tty
 echo -e "# MySQL Postfix Password : $postfixpassword" &>/dev/tty
-echo -e "# ZPanelX Username       : zadmin                            #" &>/dev/tty
-echo -e "# ZPanelX Password       : $zadminNewPass" &>/dev/tty
+echo -e "# WBIPanel Username       : wbiadmin                         #" &>/dev/tty
+echo -e "# WBIPanel Password       : $zadminNewPass" &>/dev/tty
 echo -e "#                                                            #" &>/dev/tty
-echo -e "# ZPanelX Web login can be accessed using your server IP     #" &>/dev/tty
+echo -e "# WBIPanel Web login can be accessed using your server IP    #" &>/dev/tty
 echo -e "# inside your web browser.                                   #" &>/dev/tty
 echo -e "#                                                            #" &>/dev/tty
 echo -e "##############################################################" &>/dev/tty
