@@ -442,7 +442,7 @@ service atd restart
 
 # We'll now remove the temporary install cache.
 cd ../
-# rm -rf wbi_install_cache/ WBIpanelx/
+rm -rf wbi_install_cache/ WBIpanelx/
 
 # Advise the user that ZPanel is now installed and accessible.
 echo -e "##############################################################" &>/dev/tty
