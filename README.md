@@ -23,10 +23,6 @@ Manual Installation for CentOS 6.3+ is
 
 ```./10_1_1.sh```
 
-...and to upgrade your server (for example from WBIPanel 10.1.0 to 10.1.1):-
-
-```bash <(curl -Ss https://raw.github.com/grvweb/installers/master/upgrade/CentOS-6_4/10_1_1.sh)```
-
 
 Advanced users may wish to install or update WBIPanelx 10.1.1 using our CentOS only repository. Full instructions can be found [here](https://github.com/grvweb/installers/tree/master/install/CentOS/6)
 
