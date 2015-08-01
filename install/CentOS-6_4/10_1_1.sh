@@ -221,7 +221,7 @@ yum -y remove bind-chroot
 # We now clone the WBIPanel software from GitHub
 echo "Downloading WBIPanel, Please wait, this may take several minutes, the installer will continue after this is complete!"
 git clone https://github.com/grvweb/WBIpanelx.git
-cd zpanelx/
+cd wbipanelx/
 git checkout $WBI_VERSION
 mkdir ../wbi_install_cache/
 git checkout-index -a -f --prefix=../wbi_install_cache/
@@ -442,7 +442,7 @@ service atd restart
 
 # We'll now remove the temporary install cache.
 cd ../
-rm -rf wbi_install_cache/ zpanelx/
+rm -rf wbi_install_cache/ wbipanelx/
 
 # Advise the user that ZPanel is now installed and accessible.
 echo -e "##############################################################" &>/dev/tty
