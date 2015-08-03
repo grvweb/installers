@@ -52,19 +52,21 @@ fi
 BITS=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
 if [ -f /etc/centos-release ]; then
   OS="CentOs"
-  VER=$(cat /etc/centos-release | sed 's/^.*release //;s/ (Fin.*$//')
+  FLVER=$(cat /etc/centos-release | sed 's/^.*release //;s/ (Fin.*$//')
+  VER=${FLVER::+3}
 else
   OS=$(uname -s)
-  VER=$(uname -r)
+  FLVER=$(uname -r)
+  VER=${FLVER::+3}
 fi
-echo "Detected : $OS  $VER  $BITS"
+echo "Detected : $OS  $FLVER  $BITS"
 #warning the last version of centos and 7.0
 if [ "$OS" = "CentOs" ] && [ "$VER" = "7.0" ] || [ "$VER" = "7.1" ] || [ "$VER" = "7.2" ] || [ "$VER" = "7.3" ] || [ "$VER" = "7.4" ]; then
   echo "Ok."
 else
   echo "Sorry, this installer only supports the installation of ZPanel on CentOS 7+."
-  echo "As Beta Testing Your Allowed To Continue"
-  #exit 1;
+  #echo "As Beta Testing, Your Allowed To Continue"
+  exit 1;
 fi
 
 # Set custom logging methods so we create a log file in the current working directory.
@@ -85,8 +87,9 @@ passwordgen() {
 }
 
 # Display the 'welcome' splash/user warning info..
+echo -e "Current OS: $OS  $FLVER  $BITS"
 echo -e "##############################################################"
-echo -e "# Welcome to the Official WBIPanel Installer for CentOS 7.0  #"
+echo -e "# Welcome to the Official WBIPanel Installer for CentOS 7+   #"
 echo -e "#                                                            #"
 echo -e "# Please make sure your VPS provider hasn't pre-installed    #"
 echo -e "# any packages required by WBIPanel.                         #"
@@ -110,10 +113,10 @@ read -e -p "Would you like to continue (y/n)? " yn
 	esac
 done
 
-echo -e "Installing Minimum Requirements wget vim make zip unzip git chkconfig nano"
+echo -e "Installing Minimum Requirements wget vim make zip unzip git chkconfig nano iptables-services firewalld"
 
 # Install some standard utility packages required by the installer and/or WBI.
-yum -y install sudo wget vim make zip unzip git chkconfig nano
+yum -y install sudo wget vim make zip unzip git chkconfig nano iptables-services firewalld
 
 # Set some installation defaults/auto assignments
 fqdn=`/bin/hostname`
@@ -229,8 +232,8 @@ git checkout-index -a -f --prefix=../wbi_install_cache/
 cd ../wbi_install_cache/
 
 # Lets pull in all the required updates etc.
-rpm --import https://fedoraproject.org/static/0608B895.txt
-cp etc/build/config_packs/centos_7_0/yum.repos.d/epel.repo /etc/yum.repos.d/epel.repo
+rpm --import https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-7
+cp etc/build/config_packs/centos_7/yum.repos.d/epel.repo /etc/yum.repos.d/epel.repo
 
 # problem upgrade centos 6.2 with 6.5 pacquet deteted as repo qpid-cpp-client
 yum -y remove qpid-cpp-client
@@ -270,7 +273,7 @@ ln -s /etc/zpanel/panel/bin/setso /usr/bin/setso
 ln -s /etc/zpanel/panel/bin/setzadmin /usr/bin/setzadmin
 chmod +x /etc/zpanel/panel/bin/zppy
 chmod +x /etc/zpanel/panel/bin/setso
-cp -R /etc/zpanel/panel/etc/build/config_packs/centos_7_0/. /etc/zpanel/configs/
+cp -R /etc/zpanel/panel/etc/build/config_packs/centos_7/. /etc/zpanel/configs/
 # set password after test connexion
 cc -o /etc/zpanel/panel/bin/zsudo /etc/zpanel/configs/bin/zsudo.c
 sudo chown root /etc/zpanel/panel/bin/zsudo
