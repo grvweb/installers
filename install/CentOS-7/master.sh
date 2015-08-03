@@ -59,10 +59,10 @@ else
 fi
 echo "Detected : $OS  $VER  $BITS"
 #warning the last version of centos and 7.0
-if [ "$OS" = "CentOs" ] && [ "$VER" = "7.0" ]; then
+if [ "$OS" = "CentOs" ] && [ "$VER" = "7.0" ] || [ "$VER" = "7.1" ] || [ "$VER" = "7.2" ] || [ "$VER" = "7.3" ] || [ "$VER" = "7.4" ]; then
   echo "Ok."
 else
-  echo "Sorry, this installer only supports the installation of ZPanel on CentOS 7.0."
+  echo "Sorry, this installer only supports the installation of ZPanel on CentOS 7+."
   exit 1;
 fi
 
