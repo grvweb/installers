@@ -113,10 +113,10 @@ read -e -p "Would you like to continue (y/n)? " yn
 	esac
 done
 
-echo -e "Installing Minimum Requirements wget vim make zip unzip git chkconfig nano iptables-services firewalld"
+echo -e "Installing Minimum Requirements wget vim make zip unzip git chkconfig nano iptables-services firewalld deltarpm"
 
 # Install some standard utility packages required by the installer and/or WBI.
-yum -y install sudo wget vim make zip unzip git chkconfig nano iptables-services firewalld
+yum -y install sudo wget vim make zip unzip git chkconfig nano iptables-services firewalld deltarpm
 
 # Set some installation defaults/auto assignments
 fqdn=`/bin/hostname`
@@ -205,10 +205,10 @@ sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
 setenforce 0
 
 # We now stop IPTables to ensure a fully automated and pain free installation.
-service iptables save
-service iptables stop
-chkconfig sendmail off
-chkconfig iptables off
+systemctl mask iptables
+systemctl iptables stop
+systemctl sendmail off
+systemctl iptables off
 
 # Start log creation.
 echo -e ""
@@ -242,7 +242,18 @@ yum -y update
 yum -y upgrade
 
 # Install required software and dependencies required by ZPanel.
-yum -y install ld-linux.so.2 libbz2.so.1 libdb-4.7.so libgd.so.2 httpd php php-suhosin php-devel php-gd php-mbstring php-mcrypt php-intl php-imap php-mysql php-xml php-xmlrpc curl curl-devel perl-libwww-perl libxml2 libxml2-devel mysql-server zip webalizer gcc gcc-c++ httpd-devel at make mysql-devel bzip2-devel postfix postfix-perl-scripts bash-completion dovecot dovecot-mysql dovecot-pigeonhole mysql-server proftpd proftpd-mysql bind bind-utils bind-libs
+yum -y install ld-linux.so.2 libbz2.so.1 libdb-4.7.so libgd.so.2 httpd php php-suhosin php-devel php-gd php-mbstring php-mcrypt php-intl php-imap php-mysql php-xml php-xmlrpc curl curl-devel perl-libwww-perl libxml2 libxml2-devel mariadb mariadb-server zip gcc gcc-c++ httpd-devel at make mysql-devel bzip2-devel postfix postfix-perl-scripts bash-completion dovecot dovecot-mysql dovecot-pigeonhole mysql-server proftpd proftpd-mysql bind bind-utils bind-libs gcc gcc-c++ gd-devel
+
+# Manuel Webliser Install 
+wget ftp://ftp.mrunix.net/pub/webalizer/webalizer-2.23-08-src.zip
+unzip webalizer-2.23-08-src.zip
+cd webalizer-2.23-08
+./configure
+make
+make install
+cd
+rm -f webalizer-2.23-08-src.zip
+cd wbi_install_cache/
 
 # Generation of random passwords
 password=`passwordgen`;
@@ -280,7 +291,8 @@ sudo chown root /etc/zpanel/panel/bin/zsudo
 chmod +s /etc/zpanel/panel/bin/zsudo
 
 # MySQL specific installation tasks...
-service mysqld start
+systemctl start mariadb.service
+systemctl enable mariadb.service
 mysqladmin -u root password "$password"
 until mysql -u root -p$password -e ";" > /dev/null 2>&1 ; do
 read -s -p "enter your root mysql password : " password
@@ -418,31 +430,32 @@ ln -s /etc/zpanel/configs/roundcube/config.inc.php /etc/zpanel/panel/etc/apps/we
 ln -s /etc/zpanel/configs/roundcube/db.inc.php /etc/zpanel/panel/etc/apps/webmail/config/db.inc.php
 
 # Enable system services and start/restart them as required.
-chkconfig httpd on
-chkconfig postfix on
-chkconfig dovecot on
-chkconfig crond on
-chkconfig mysqld on
-chkconfig named on
-chkconfig proftpd on
-service httpd start
-service postfix restart
-service dovecot start
-service crond start
-service mysqld restart
-service named start
-service proftpd start
-service atd start
+systemctl enable iptables
+systemctl enable httpd
+systemctl enable postfix
+systemctl enable dovecot
+systemctl enable crond
+systemctl enable mysqld
+systemctl enable named
+systemctl proftpd
+systemctl start httpd
+systemctl restart postfix
+systemctl start dovecot
+systemctl start crond start
+systemctl restart mariadb.service
+systemctl start named start
+systemctl start proftpd start
+systemctl start atd start
 php /etc/zpanel/panel/bin/daemon.php
 # restart all service
-service httpd restart
-service postfix restart
-service dovecot restart
-service crond restart
-service mysqld restart
-service named restart
-service proftpd restart
-service atd restart
+systemctl restart httpd
+systemctl restart postfix
+systemctl restart dovecot
+systemctl restart crond
+systemctl restart mysqld
+systemctl restart named
+systemctl restart proftpd
+systemctl restart atd
 
 # We'll now remove the temporary install cache.
 cd ../
