@@ -63,7 +63,8 @@ if [ "$OS" = "CentOs" ] && [ "$VER" = "7.0" ] || [ "$VER" = "7.1" ] || [ "$VER" 
   echo "Ok."
 else
   echo "Sorry, this installer only supports the installation of ZPanel on CentOS 7+."
-  exit 1;
+  echo "As Beta Testing Your Allowed To Continue"
+  #exit 1;
 fi
 
 # Set custom logging methods so we create a log file in the current working directory.
