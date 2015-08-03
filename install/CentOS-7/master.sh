@@ -206,7 +206,7 @@ setenforce 0
 
 # We now stop IPTables to ensure a fully automated and pain free installation.
 systemctl mask iptables
-systemctl iptables stop
+systemctl stop iptables
 systemctl sendmail off
 systemctl iptables off
 
@@ -218,7 +218,7 @@ echo -e ""
 rpm -qa
 
 # Removal of conflicting packages and services prior to ZPX installation.
-service sendmail stop
+systemctl stop sendmail
 yum -y remove bind-chroot
 
 
