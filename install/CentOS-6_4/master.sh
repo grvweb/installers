@@ -24,8 +24,8 @@ WBI_VERSION = 'master'
 
 # First we check if the user is 'root' before allowing installation to commence
 if [ $UID -ne 0 ]; then
-    echo "Installed failed! To install you must be logged in as 'root', please try again"
-  exit 1
+    echo "Install failed! To install you must be logged in as 'root', please try again"
+	exit 1
 fi
 
 # Lets check for some common control panels that we know will affect the installation/operating of ZPanel.

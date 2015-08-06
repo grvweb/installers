@@ -3,7 +3,7 @@
 # OS VERSION: Ubuntu Server 12.04.x LTS
 # ARCH: x32_64
 
-ZPX_VERSION=10.1.1
+WBI_VERSION = 'master'
 
 # Official ZPanel Automated Installation Script
 # =============================================

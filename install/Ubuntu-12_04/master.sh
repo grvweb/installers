@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-# OS VERSION: CentOS 7+ Minimal
-# ARCH: 32bit + 64bit
+# OS VERSION: Ubuntu Server 12.04.x LTS
+# ARCH: x32_64
 
-WBI_VERSION='master'
+WBI_VERSION = 'master'
 
 # Official ZPanel Automated Installation Script
 # =============================================
@@ -24,8 +24,8 @@ WBI_VERSION='master'
 
 # First we check if the user is 'root' before allowing installation to commence
 if [ $UID -ne 0 ]; then
-    echo "Installed failed! To install you must be logged in as 'root', please try again"
-  exit 1
+    echo "Install failed! To install you must be logged in as 'root', please try again."
+    exit 1
 fi
 
 # Lets check for some common control panels that we know will affect the installation/operating of ZPanel.
@@ -37,36 +37,31 @@ if [ -e /usr/local/cpanel ] || [ -e /usr/local/directadmin ] || [ -e /usr/local/
     exit
 fi
 
-if rpm -q php httpd mysql bind postfix dovecot; 
-then
+# Lets check for some common packages that we know will affect the installation/operating of ZPanel.
+# We expect a clean OS so no apache/mySQL/bind/postfix/php!
+if dpkg -s php apache mysql bind postfix dovecot; then
     echo "You appear to have a server with apache/mysql/bind/postfix already installed; "
     echo "This installer is designed to install and configure ZPanel on a clean OS "
     echo "installation only!"
     echo ""
     echo "Please re-install your OS before attempting to install using this script."
     exit
-exit 
 fi
 
-# Ensure the installer is launched and can only be launched on CentOs 7.0
+# Ensure the installer is launched and can only be launched on Ubuntu 12.04
 BITS=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
-if [ -f /etc/centos-release ]; then
-  OS="CentOs"
-  FLVER=$(cat /etc/centos-release | sed 's/^.*release //;s/ (Fin.*$//')
-  VER=${FLVER::+3}
+if [ -f /etc/lsb-release ]; then
+  OS=$(cat /etc/lsb-release | grep DISTRIB_ID | sed 's/^.*=//')
+  VER=$(cat /etc/lsb-release | grep DISTRIB_RELEASE | sed 's/^.*=//')
 else
   OS=$(uname -s)
-  FLVER=$(uname -r)
-  VER=${FLVER::+3}
+  VER=$(uname -r)
 fi
-echo "Detected : $OS  $FLVER  $BITS"
-
-#warning the last version of centos and 7.0
-if [ "$OS" = "CentOs" ] && [ "$VER" = "7.0" ] || [ "$VER" = "7.1" ] || [ "$VER" = "7.2" ] || [ "$VER" = "7.3" ] || [ "$VER" = "7.4" ]; then
+echo "Detected : $OS  $VER  $BITS"
+if [ "$OS" = "Ubuntu" ] && [ "$VER" = "12.04" ]; then
   echo "Ok."
 else
-  echo "Sorry, this installer only supports the installation of ZPanel on CentOS 7+."
-  #echo "As Beta Testing, Your Allowed To Continue"
+  echo "Sorry, this installer only supports the installation of ZPanel on Ubuntu 12.04."
   exit 1;
 fi
 
@@ -80,148 +75,132 @@ exec 2>&1
 # * Common installer functions          *
 # ***************************************
 
-# Generates random passwords fro the 'zadmin' account as well as Postfix and MySQL root account.
+# Generates random passwords for the 'zadmin' account as well as Postfix and MySQL root account.
 passwordgen() {
-         l=$1
+    	 l=$1
            [ "$l" == "" ] && l=16
           tr -dc A-Za-z0-9 < /dev/urandom | head -c ${l} | xargs
 }
 
 # Display the 'welcome' splash/user warning info..
-echo -e "Current OS: $OS  $FLVER  $BITS"
+echo -e ""
 echo -e "##############################################################"
-echo -e "# Welcome to the Official WBIPanel Installer for CentOS 7+   #"
+echo -e "# Welcome to the Official ZPanelX Installer for Ubuntu       #"
+echo -e "# Server 12.04.x LTS                                         #"
 echo -e "#                                                            #"
 echo -e "# Please make sure your VPS provider hasn't pre-installed    #"
-echo -e "# any packages required by WBIPanel.                         #"
+echo -e "# any packages required by ZPanelX.                          #"
 echo -e "#                                                            #"
 echo -e "# If you are installing on a physical machine where the OS   #"
 echo -e "# has been installed by yourself please make sure you only   #"
-echo -e "# installed CentOS with no extra packages.                   #"
+echo -e "# installed Ubuntu Server with no extra packages.            #"
 echo -e "#                                                            #"
-echo -e "# If you selected additional options during the CentOS       #"
+echo -e "# If you selected additional options during the Ubuntu       #"
 echo -e "# install please consider reinstalling without them.         #"
 echo -e "#                                                            #"
 echo -e "##############################################################"
+echo -e ""
 
+echo -e "Installing Minimum Requirements wget vim make zip unzip git chkconfig nano"
 
-# Lets check that the user wants to continue first...
+# Lets check that the user wants to continue first as obviously otherwise we'll be removing AppArmor for no reason.
 while true; do
 read -e -p "Would you like to continue (y/n)? " yn
     case $yn in
-    	[Yy]* ) break;;
-		[Nn]* ) exit;
-	esac
-done
-
-echo -e "Installing Minimum Requirements wget vim make zip unzip git chkconfig nano iptables-services firewalld deltarpm"
-
-# Install some standard utility packages required by the installer and/or WBI.
-yum -y install sudo wget vim make zip unzip git chkconfig nano iptables-services firewalld deltarpm
-
-# Set some installation defaults/auto assignments
-fqdn=`/bin/hostname`
-publicip=`wget -qO- https://wtfismyip.com/text`
-
-#a selection list for the time zone is not better now?
-yum -y -q install tzdata &>/dev/null
-echo "echo \$TZ > /etc/timezone" >> /usr/bin/tzselect
-
-# Installer options
-while true; do
-	echo -e "Find your timezone from : http://php.net/manual/en/timezones.php e.g Europe/London"
-	tzselect
-	tz=`cat /etc/timezone`
-	echo -e "Enter the FQDN you will use to access WBIPanel on your server."
-	echo -e "- It MUST be a sub-domain of you main domain, it MUST NOT be your main domain only. Example: panel.yourdomain.com"
-	echo -e "- Remember that the sub-domain ('panel' in the example) MUST be setup in your DNS nameserver."
-	read -e -p "FQDN for WBIPanel: " -i $fqdn fqdn
-	read -e -p "Enter the public (external) server IP: " -i $publicip publicip
-	read -e -p "WBIPanel is now ready to install, do you wish to continue (y/n)" yn
-	case $yn in
 		[Yy]* ) break;;
 		[Nn]* ) exit;
 	esac
 done
 
-    #to remedy some problems of compatibility use of mirror centos.org to all users
-    #CentOS-Base.repo
+# Install some standard utility packages required by the installer and/or WBI.
+apt-get -y install sudo wget vim make zip unzip git debconf-utils at
 
-    #released Base
-    sed -i 's|mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=os|#mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=os|' "/etc/yum.repos.d/CentOS-Base.repo"
-    sed -i 's|#baseurl=http://mirror.centos.org/centos/$releasever/os/$basearch/|baseurl=http://mirror.centos.org/centos/$releasever/os/$basearch/|' "/etc/yum.repos.d/CentOS-Base.repo"
-    #released Updates
-    sed -i 's|mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=updates|#mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=updates|' "/etc/yum.repos.d/CentOS-Base.repo"
-    sed -i 's|#baseurl=http://mirror.centos.org/centos/$releasever/updates/$basearch/|baseurl=http://mirror.centos.org/centos/$releasever/updates/$basearch/|' "/etc/yum.repos.d/CentOS-Base.repo"
-    #additional packages that may be useful Centos Extra
-    sed -i 's|mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=extras|#mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=extras|' "/etc/yum.repos.d/CentOS-Base.repo"
-    sed -i 's|#baseurl=http://mirror.centos.org/centos/$releasever/extras/$basearch/|baseurl=http://mirror.centos.org/centos/$releasever/extras/$basearch/|' "/etc/yum.repos.d/CentOS-Base.repo"
-    #additional packages that extend functionality of existing packages Centos Plus
-    sed -i 's|mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=centosplus|#mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=centosplus|' "/etc/yum.repos.d/CentOS-Base.repo"
-    sed -i 's|#baseurl=http://mirror.centos.org/centos/$releasever/centosplus/$basearch/|baseurl=http://mirror.centos.org/centos/$releasever/centosplus/$basearch/|' "/etc/yum.repos.d/CentOS-Base.repo"
-    #contrib - packages by Centos Users
-    sed -i 's|mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=contrib|#mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=contrib|' "/etc/yum.repos.d/CentOS-Base.repo"
-    sed -i 's|#baseurl=http://mirror.centos.org/centos/$releasever/contrib/$basearch/|baseurl=http://mirror.centos.org/centos/$releasever/contrib/$basearch/|' "/etc/yum.repos.d/CentOS-Base.repo"
+# Set some installation defaults/auto assignments
+fqdn=`/bin/hostname`
+publicip=`wget -qO- https://wtfismyip.com/text`
 
-    #check if the machine and on openvz
-    if [ -f "/etc/yum.repos.d/vz.repo" ]; then
-      #vz.repo
-      sed -i 's|mirrorlist=http://vzdownload.swsoft.com/download/mirrors/centos-7|baseurl=http://vzdownload.swsoft.com/ez/packages/centos/7/$basearch/os/|' "/etc/yum.repos.d/vz.repo"
-      sed -i 's|mirrorlist=http://vzdownload.swsoft.com/download/mirrors/updates-released-ce7|baseurl=http://vzdownload.swsoft.com/ez/packages/centos/7/$basearch/updates/|' "/etc/yum.repos.d/vz.repo"
-    fi
 
-    #disable deposits that could result in installation errors
-    #repo ELRepo
-    if [ -f "/etc/yum.repos.d/elrepo.repo" ]; then
-      sed -i 's/enabled=1/enabled=0/g' "/etc/yum.repos.d/elrepo.repo"
-    fi
 
-    #repo Epel Testing
-    if [ -f "/etc/yum.repos.d/epel-testing.repo" ]; then
-      sed -i 's/enabled=1/enabled=0/g' "/etc/yum.repos.d/epel-testing.repo"
-    fi
+# We need to disable and remove AppArmor...
+[ -f /etc/init.d/apparmor ]
+if [ $? = "0" ]; then
+    echo -e ""
+    echo -e "Disabling and removing AppArmor, please wait..."
+    /etc/init.d/apparmor stop &> /dev/null
+	update-rc.d -f apparmor remove &> /dev/null
+	apt-get -y remove apparmor &> /dev/null
+	mv /etc/init.d/apparmor /etc/init.d/apparmpr.removed &> /dev/null
+	##after removing AppArmor reboot is not obligatory
+	echo -e "Please restart the server and run the installer again. AppArmor has been removed."
+        #exit
+fi
 
-    #repo Remi
-    if [ -f "/etc/yum.repos.d/remi.repo" ]; then
-      sed -i 's/enabled=1/enabled=0/g' "/etc/yum.repos.d/remi.repo"
-    fi
+#a selection list for the time zone is not better now?
+apt-get -yqq update &>/dev/null
+apt-get -yqq install tzdata &>/dev/null
 
-    #repo RPMForge
-    if [ -f "/etc/yum.repos.d/rpmforge.repo" ]; then
-      sed -i 's/enabled=1/enabled=0/g' "/etc/yum.repos.d/rpmforge.repo"
-    fi
-
-    #repo RPMFusion Free Updates
-    if [ -f "/etc/yum.repos.d/rpmfusion-free-updates.repo" ]; then
-      sed -i 's/enabled=1/enabled=0/g' "/etc/yum.repos.d/rpmfusion-free-updates.repo"
-    fi
-
-    #repo RPMFusion Free Updates Testing
-    if [ -f "/etc/yum.repos.d/rpmfusion-free-updates-testing.repo" ]; then
-      sed -i 's/enabled=1/enabled=0/g' "/etc/yum.repos.d/rpmfusion-free-updates-testing.repo"
-    fi
-
-# We need to disable SELinux...
-sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
-setenforce 0
-
-# We now stop IPTables to ensure a fully automated and pain free installation.
-systemctl mask iptables
-systemctl stop iptables
-systemctl stop sendmail
-#systemctl iptables off
+# Installer options
+while true; do
+	#echo -e "Find your timezone from : http://php.net/manual/en/timezones.php e.g Europe/London"
+	#read -e -p "Enter your timezone: " -i "Europe/London" tz
+	dpkg-reconfigure tzdata
+	tz=`cat /etc/timezone`
+	echo -e "Enter the FQDN you will use to access ZPanel on your server."
+	echo -e "- It MUST be a sub-domain of you main domain, it MUST NOT be your main domain only. Example: panel.yourdomain.com"
+	echo -e "- Remember that the sub-domain ('panel' in the example) MUST be setup in your DNS nameserver."
+	read -e -p "FQDN for zpanel: " -i $fqdn fqdn
+	read -e -p "Enter the public (external) server IP: " -i $publicip publicip
+    read -e -p "ZPanel is now ready to install, do you wish to continue (y/n)" yn
+    case $yn in
+        [Yy]* ) break;;
+        [Nn]* ) exit;
+    esac
+done
 
 # Start log creation.
 echo -e ""
 echo -e "# Generating installation log and debug info..."
 uname -a
 echo -e ""
-rpm -qa
+dpkg --get-selections
 
-# Removal of conflicting packages and services prior to ZPX installation.
-systemctl stop sendmail
-yum -y remove bind-chroot
+# We need to update the enabled Aptitude repositories
+echo -ne "\nUpdating Aptitude Repos: " >/dev/tty
+#if grep -Fxq "deb-src" /etc/apt/sources.list
+#then
+#    echo "sources list up-to-date"
+#else
+#    echo "deb-src http://archive.ubuntu.com/ubuntu precise main" >> /etc/apt/sources.list
+#    echo "deb-src http://archive.ubuntu.com/ubuntu precise-updates main" >> /etc/apt/sources.list
+#    echo "deb-src http://security.ubuntu.com/ubuntu precise-security main" >> /etc/apt/sources.list
+#    echo "deb-src http://archive.ubuntu.com/ubuntu precise universe" >> /etc/apt/sources.list
+#    echo "deb-src http://archive.ubuntu.com/ubuntu precise-updates universe" >> /etc/apt/sources.list
+#fi
+#to avoid compatibility problems have ppa and removes deposits in the outcry over
+ mkdir -p "/etc/apt/sources.list.d.save"
+        cp -R "/etc/apt/sources.list.d/*" "/etc/apt/sources.list.d.save" &> /dev/null
+        rm -rf "/etc/apt/sources.list/*"
+        cp "/etc/apt/sources.list" "/etc/apt/sources.list.save"
+cat > /etc/apt/sources.list <<EOF
+#Dépots main restricted
+deb http://archive.ubuntu.com/ubuntu/ $(lsb_release -sc) main restricted
+deb http://security.ubuntu.com/ubuntu $(lsb_release -sc)-security main restricted
+deb http://archive.ubuntu.com/ubuntu/ $(lsb_release -sc)-updates main restricted
+ 
+deb-src http://archive.ubuntu.com/ubuntu/ $(lsb_release -sc) main restricted
+deb-src http://archive.ubuntu.com/ubuntu/ $(lsb_release -sc)-updates main restricted
+deb-src http://security.ubuntu.com/ubuntu $(lsb_release -sc)-security main restricted
+#Dépots Universe Multiverse 
+deb http://archive.ubuntu.com/ubuntu/ $(lsb_release -sc) universe multiverse
+deb http://security.ubuntu.com/ubuntu $(lsb_release -sc)-security universe multiverse
+deb http://archive.ubuntu.com/ubuntu/ $(lsb_release -sc)-updates universe multiverse
 
+deb-src http://archive.ubuntu.com/ubuntu/ $(lsb_release -sc) universe multiverse
+deb-src http://security.ubuntu.com/ubuntu $(lsb_release -sc)-security universe multiverse
+deb-src http://archive.ubuntu.com/ubuntu/ $(lsb_release -sc)-updates universe multiverse
+EOF
+
+apt-get update
 
 # We now clone the WBIPanel software from GitHub
 echo "Downloading WBIPanel, Please wait, this may take several minutes, the installer will continue after this is complete!"
@@ -232,29 +211,14 @@ mkdir ../wbi_install_cache/
 git checkout-index -a -f --prefix=../wbi_install_cache/
 cd ../wbi_install_cache/
 
-# Lets pull in all the required updates etc.
-rpm --import https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-7
-cp etc/build/config_packs/centos_7/yum.repos.d/epel.repo /etc/yum.repos.d/epel.repo
-
-# problem upgrade centos 6.2 with 6.5 pacquet deteted as repo qpid-cpp-client
-yum -y remove qpid-cpp-client
 # We now update the server software packages.
-yum -y update
-yum -y upgrade
+apt-get update -yqq
+apt-get upgrade -yqq
 
 # Install required software and dependencies required by ZPanel.
-yum -y install ld-linux.so.2 libbz2.so.1 libdb-4.7.so libgd.so.2 httpd php php-suhosin php-devel php-gd php-mbstring php-mcrypt php-intl php-imap php-mysql php-xml php-xmlrpc curl curl-devel perl-libwww-perl libxml2 libxml2-devel mariadb mariadb-server zip gcc gcc-c++ httpd-devel at make mysql-devel bzip2-devel postfix postfix-perl-scripts bash-completion dovecot dovecot-mysql dovecot-pigeonhole mysql-server proftpd proftpd-mysql bind bind-utils bind-libs gcc gcc-c++ gd-devel
-
-# Manuel Webliser Install 
-#wget ftp://ftp.mrunix.net/pub/webalizer/webalizer-2.23-08-src.zip
-#unzip webalizer-2.23-08-src.zip
-#cd webalizer-2.23-08
-#./configure
-#make
-#make install
-#cd
-#rm -f webalizer-2.23-08-src.zip
-#cd wbi_install_cache/
+# We disable the DPKG prompts before we run the software install to enable fully automated install.
+export DEBIAN_FRONTEND=noninteractive
+apt-get install -qqy mysql-server mysql-server apache2 libapache2-mod-php5 libapache2-mod-bw php5-common php5-suhosin php5-cli php5-mysql php5-gd php5-mcrypt php5-curl php-pear php5-imap php5-xmlrpc php5-xsl db4.7-util zip webalizer build-essential bash-completion dovecot-mysql dovecot-imapd dovecot-pop3d dovecot-common dovecot-managesieved dovecot-lmtpd postfix postfix-mysql libsasl2-modules-sql libsasl2-modules proftpd-mod-mysql bind9 bind9utils
 
 # Generation of random passwords
 password=`passwordgen`;
@@ -278,38 +242,38 @@ cp -R . /etc/zpanel/panel/
 chmod -R 777 /etc/zpanel/
 chmod -R 777 /var/zpanel/
 chmod -R 770 /var/zpanel/hostdata/
-chown -R apache:apache /var/zpanel/hostdata/
+chown -R www-data:www-data /var/zpanel/hostdata/
 chmod 644 /etc/zpanel/panel/etc/apps/phpmyadmin/config.inc.php
 ln -s /etc/zpanel/panel/bin/zppy /usr/bin/zppy
 ln -s /etc/zpanel/panel/bin/setso /usr/bin/setso
 ln -s /etc/zpanel/panel/bin/setzadmin /usr/bin/setzadmin
 chmod +x /etc/zpanel/panel/bin/zppy
 chmod +x /etc/zpanel/panel/bin/setso
-cp -R /etc/zpanel/panel/etc/build/config_packs/centos_7/. /etc/zpanel/configs/
+cp -R /etc/zpanel/panel/etc/build/config_packs/ubuntu_12_04/. /etc/zpanel/configs/
 # set password after test connexion
 cc -o /etc/zpanel/panel/bin/zsudo /etc/zpanel/configs/bin/zsudo.c
 sudo chown root /etc/zpanel/panel/bin/zsudo
 chmod +s /etc/zpanel/panel/bin/zsudo
 
 # MySQL specific installation tasks...
-systemctl start mariadb.service
-systemctl enable mariadb.service
+service mysql start
 mysqladmin -u root password "$password"
 until mysql -u root -p$password -e ";" > /dev/null 2>&1 ; do
 read -s -p "enter your root mysql password : " password
 done
 sed -i "s|YOUR_ROOT_MYSQL_PASSWORD|$password|" /etc/zpanel/panel/cnf/db.php
+mysql -u root -p$password -e "DROP DATABASE test";
 mysql -u root -p$password -e "DELETE FROM mysql.user WHERE User='root' AND Host != 'localhost'";
 mysql -u root -p$password -e "DELETE FROM mysql.user WHERE User=''";
-mysql -u root -p$password -e "DROP DATABASE test";
+mysql -u root -p$password -e "FLUSH PRIVILEGES";
 mysql -u root -p$password -e "CREATE SCHEMA zpanel_roundcube";
 cat /etc/zpanel/configs/zpanelx-install/sql/*.sql | mysql -u root -p$password
 mysql -u root -p$password -e "UPDATE mysql.user SET Password=PASSWORD('$postfixpassword') WHERE User='postfix' AND Host='localhost';";
 mysql -u root -p$password -e "FLUSH PRIVILEGES";
-sed -i "/symbolic-links=/a \secure-file-priv=/var/tmp" /etc/my.cnf
+sed -i "/ssl-key=/a \secure-file-priv = /var/tmp" /etc/mysql/my.cnf
 
 # Set some ZPanel custom configuration settings (using. setso and setzadmin)
-/etc/zpanel/panel/bin/setzadmin --set "$zadminNewPass";
+setzadmin --set "$zadminNewPass";
 /etc/zpanel/panel/bin/setso --set zpanel_domain $fqdn
 /etc/zpanel/panel/bin/setso --set server_ip $publicip
 /etc/zpanel/panel/bin/setso --set apache_changed "true"
@@ -323,11 +287,9 @@ echo "IP Address: $publicip" >> /root/passwords.txt
 echo "Panel Domain: $fqdn" >> /root/passwords.txt
 
 # Postfix specific installation tasks...
-sed -i "s|;date.timezone =|date.timezone = $tz|" /etc/php.ini
-sed -i "s|;upload_tmp_dir =|upload_tmp_dir = /var/zpanel/temp/|" /etc/php.ini
 mkdir /var/zpanel/vmail
 chmod -R 770 /var/zpanel/vmail
-useradd -r -u 101 -g mail -d /var/zpanel/vmail -s /sbin/nologin -c "Virtual mailbox" vmail
+useradd -r -u 150 -g mail -d /var/zpanel/vmail -s /sbin/nologin -c "Virtual maildir" vmail
 chown -R vmail:mail /var/zpanel/vmail
 mkdir -p /var/spool/vacation
 useradd -r -d /var/spool/vacation -s /sbin/nologin -c "Virtual vacation" vacation
@@ -337,7 +299,7 @@ postmap /etc/postfix/transport
 chown -R vacation:vacation /var/spool/vacation
 if ! grep -q "127.0.0.1 autoreply.$fqdn" /etc/hosts; then echo "127.0.0.1 autoreply.$fqdn" >> /etc/hosts; fi
 sed -i "s|myhostname = control.yourdomain.com|myhostname = $fqdn|" /etc/zpanel/configs/postfix/main.cf
-sed -i "s|mydomain = control.yourdomain.com|mydomain = $fqdn|" /etc/zpanel/configs/postfix/main.cf
+sed -i "s|mydomain = control.yourdomain.com|mydomain   = $fqdn|" /etc/zpanel/configs/postfix/main.cf
 rm -rf /etc/postfix/main.cf /etc/postfix/master.cf
 ln -s /etc/zpanel/configs/postfix/master.cf /etc/postfix/master.cf
 ln -s /etc/zpanel/configs/postfix/main.cf /etc/postfix/main.cf
@@ -349,9 +311,9 @@ sed -i "s|password \= postfix|password \= $postfixpassword|" /etc/zpanel/configs
 sed -i "s|\$db_password \= 'postfix';|\$db_password \= '$postfixpassword';|" /etc/zpanel/configs/postfix/vacation.conf
 
 # Dovecot specific installation tasks (includes Sieve)
-mkdir /var/zpanel/sieve
+mkdir -p /var/zpanel/sieve
 chown -R vmail:mail /var/zpanel/sieve
-mkdir /var/lib/dovecot/sieve/
+mkdir -p /var/lib/dovecot/sieve/
 touch /var/lib/dovecot/sieve/default.sieve
 ln -s /etc/zpanel/configs/dovecot2/globalfilter.sieve /var/zpanel/sieve/globalfilter.sieve
 rm -rf /etc/dovecot/dovecot.conf
@@ -368,59 +330,73 @@ chmod 660 /var/log/dovecot*
 # ProFTPD specific installation tasks
 groupadd -g 2001 ftpgroup
 useradd -u 2001 -s /bin/false -d /bin/null -c "proftpd user" -g ftpgroup ftpuser
-sed -i "s|zpanel_proftpd@localhost root z|zpanel_proftpd@localhost root $password|" /etc/zpanel/configs/proftpd/proftpd-mysql.conf
-rm -rf /etc/proftpd.conf
-touch /etc/proftpd.conf
-if ! grep -q "include /etc/zpanel/configs/proftpd/proftpd-mysql.conf" /etc/proftpd.conf; then echo "include /etc/zpanel/configs/proftpd/proftpd-mysql.conf" >> /etc/proftpd.conf; fi
+sed -i "s|#SQLConnectInfo  zpanel_proftpd@localhost root password_here|SQLConnectInfo   zpanel_proftpd@localhost root $password|" /etc/zpanel/configs/proftpd/proftpd-mysql.conf
+rm -rf /etc/proftpd/proftpd.conf
+touch /etc/proftpd/proftpd.conf
+if ! grep -q "include /etc/zpanel/configs/proftpd/proftpd-mysql.conf" /etc/proftpd/proftpd.conf; then echo "include /etc/zpanel/configs/proftpd/proftpd-mysql.conf" >> /etc/proftpd/proftpd.conf; fi
 chmod -R 644 /var/zpanel/logs/proftpd
 serverhost=`hostname`
 
 # Apache HTTPD specific installation tasks...
-if ! grep -q "Include /etc/zpanel/configs/apache/httpd.conf" /etc/httpd/conf/httpd.conf; then echo "Include /etc/zpanel/configs/apache/httpd.conf" >> /etc/httpd/conf/httpd.conf; fi
+if ! grep -q "Include /etc/zpanel/configs/apache/httpd.conf" /etc/apache2/apache2.conf; then echo "Include /etc/zpanel/configs/apache/httpd.conf" >> /etc/apache2/apache2.conf; fi
+sed -i 's|DocumentRoot "/var/www/html"|DocumentRoot "/etc/zpanel/panel"|' /etc/apache2/apache2.conf
+sed -i 's|Include sites-enabled/||' /etc/apache2/apache2.conf
+chown -R www-data:www-data /var/zpanel/temp/
 if ! grep -q "127.0.0.1 "$fqdn /etc/hosts; then echo "127.0.0.1 "$fqdn >> /etc/hosts; fi
 if ! grep -q "apache ALL=NOPASSWD: /etc/zpanel/panel/bin/zsudo" /etc/sudoers; then echo "apache ALL=NOPASSWD: /etc/zpanel/panel/bin/zsudo" >> /etc/sudoers; fi
-sed -i 's|DocumentRoot "/var/www/html"|DocumentRoot "/etc/zpanel/panel"|' /etc/httpd/conf/httpd.conf
-chown -R apache:apache /var/zpanel/temp/
-#Set keepalive on (default is off)
-sed -i "s|KeepAlive Off|KeepAlive On|" /etc/httpd/conf/httpd.conf
+a2enmod rewrite
+service apache2 restart
 
 # PHP specific installation tasks...
-sed -i "s|;date.timezone =|date.timezone = $tz|" /etc/php.ini
-sed -i "s|;upload_tmp_dir =|upload_tmp_dir = /var/zpanel/temp/|" /etc/php.ini
-#Disable php signature in headers to hide it from hackers
-sed -i "s|expose_php = On|expose_php = Off|" /etc/php.ini
+sed -i "s|;date.timezone =|date.timezone = $tz|" /etc/php5/cli/php.ini
+sed -i "s|;date.timezone =|date.timezone = $tz|" /etc/php5/apache2/php.ini
+sed -i "s|;upload_tmp_dir =|upload_tmp_dir = /var/zpanel/temp/|" /etc/php5/cli/php.ini
+sed -i "s|;upload_tmp_dir =|upload_tmp_dir = /var/zpanel/temp/|" /etc/php5/apache2/php.ini
+sed -i "s|expose_php = On|expose_php = Off|" /etc/php5/apache2/php.ini
 
 # Permissions fix for Apache and ProFTPD (to enable them to play nicely together!)
-if ! grep -q "umask 002" /etc/sysconfig/httpd; then echo "umask 002" >> /etc/sysconfig/httpd; fi
+if ! grep -q "umask 002" /etc/apache2/envvars; then echo "umask 002" >> /etc/apache2/envvars; fi
 if ! grep -q "127.0.0.1 $serverhost" /etc/hosts; then echo "127.0.0.1 $serverhost" >> /etc/hosts; fi
-usermod -a -G apache ftpuser
-usermod -a -G ftpgroup apache
+usermod -a -G www-data ftpuser
+usermod -a -G ftpgroup www-data
 
 # BIND specific installation tasks...
 chmod -R 777 /etc/zpanel/configs/bind/zones/
-chmod 751 /var/named
-chmod 771 /var/named/data
-rm -rf /etc/named.conf /etc/rndc.conf /etc/rndc.key
+mkdir /var/zpanel/logs/bind
+mkdir -p /var/named/dynamic
+touch /var/named/dynamic/managed-keys.bind
+touch /var/zpanel/logs/bind/bind.log
+chown root:root /etc/bind/rndc.key
+chown -R bind:bind /var/named/
+chmod 755 /etc/bind/rndc.key
+chmod -R 777 /var/zpanel/logs/bind/bind.log
+chmod -R 777 /etc/zpanel/configs/bind/etc
+rm -rf /etc/bind/named.conf /etc/bind/rndc.conf /etc/bind/rndc.key
 rndc-confgen -a
-ln -s /etc/zpanel/configs/bind/named.conf /etc/named.conf
-ln -s /etc/zpanel/configs/bind/rndc.conf /etc/rndc.conf
-cat /etc/rndc.key /etc/named.conf | tee named.conf > /dev/null
-cat /etc/rndc.key /etc/rndc.conf | tee named.conf > /dev/null
+ln -s /etc/zpanel/configs/bind/named.conf /etc/bind/named.conf
+ln -s /etc/zpanel/configs/bind/rndc.conf /etc/bind/rndc.conf
+if ! grep -q "include \"/etc/zpanel/configs/bind/etc/log.conf\";" /etc/bind/named.conf; then echo "include \"/etc/zpanel/configs/bind/etc/log.conf\";" >> /etc/bind/named.conf; fi
+ln -s /usr/sbin/named-checkconf /usr/bin/named-checkconf
+ln -s /usr/sbin/named-checkzone /usr/bin/named-checkzone
+ln -s /usr/sbin/named-compilezone /usr/bin/named-compilezone
+cat /etc/bind/rndc.key | cat - /etc/bind/named.conf > /etc/bind/named.conf.new && mv /etc/bind/named.conf.new /etc/bind/named.conf
+cat /etc/bind/rndc.key | cat - /etc/bind/rndc.conf > /etc/bind/rndc.conf.new && mv /etc/bind/rndc.conf.new /etc/bind/rndc.conf
+rm -rf /etc/bind/rndc.key
 
 # CRON specific installation tasks...
-mkdir -p /var/spool/cron/
+mkdir -p /var/spool/cron/crontabs/
 mkdir -p /etc/cron.d/
-touch /var/spool/cron/apache
-touch /etc/cron.d/apache
-crontab -u apache /var/spool/cron/apache
+touch /var/spool/cron/crontabs/www-data
+touch /etc/cron.d/www-data
+crontab -u www-data /var/spool/cron/crontabs/www-data
 cp /etc/zpanel/configs/cron/zdaemon /etc/cron.d/zdaemon
-chmod 744 /var/spool/cron
-chmod 644 /var/spool/cron/apache
+chmod -R 644 /var/spool/cron/crontabs/
+chmod 744 /var/spool/cron/crontabs
 chmod -R 644 /etc/cron.d/
-chown -R apache:apache /var/spool/cron/
+chown -R www-data:www-data /var/spool/cron/crontabs/
 
 # Webalizer specific installation tasks...
-rm -rf /etc/webalizer.conf
+rm -rf /etc/webalizer/webalizer.conf
 
 # Roundcube specific installation tasks...
 sed -i "s|YOUR_MYSQL_ROOT_PASSWORD|$password|" /etc/zpanel/configs/roundcube/db.inc.php
@@ -431,34 +407,15 @@ ln -s /etc/zpanel/configs/roundcube/config.inc.php /etc/zpanel/panel/etc/apps/we
 ln -s /etc/zpanel/configs/roundcube/db.inc.php /etc/zpanel/panel/etc/apps/webmail/config/db.inc.php
 
 # Enable system services and start/restart them as required.
-systemctl enable iptables
-systemctl enable httpd
-systemctl enable postfix
-systemctl enable dovecot
-systemctl enable crond
-systemctl enable mariadb.service
-systemctl enable named
-systemctl enable proftpd
-
-systemctl start httpd
-systemctl restart postfix
-systemctl start dovecot
-systemctl start crond
-systemctl restart mariadb.service
-systemctl start named
-systemctl start proftpd
-systemctl start atd
+service apache2 start
+service postfix restart
+service dovecot start
+service cron reload
+service mysql start
+service bind9 start
+service proftpd start
+service atd start
 php /etc/zpanel/panel/bin/daemon.php
-# restart all service
-systemctl restart httpd
-systemctl restart postfix
-systemctl restart dovecot
-systemctl restart crond
-systemctl restart mariadb.service
-systemctl restart named
-systemctl restart proftpd
-systemctl restart atd
-
 
 # We'll now remove the temporary install cache.
 cd ../
@@ -483,8 +440,8 @@ echo -e "##############################################################" &>/dev/
 echo -e "" &>/dev/tty
 
 # We now request that the user restarts their server...
-while true; do
 read -e -p "Restart your server now to complete the install (y/n)? " rsn
+while true; do
 	case $rsn in
 		[Yy]* ) break;;
 		[Nn]* ) exit;
