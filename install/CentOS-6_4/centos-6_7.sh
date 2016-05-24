@@ -252,8 +252,8 @@ mkdir /etc/zpanel/panel
 mkdir /etc/zpanel/docs
 mkdir /var/zpanel
 mkdir /var/zpanel/hostdata
-mkdir /var/zpanel/hostdata/zadmin
-mkdir /var/zpanel/hostdata/zadmin/public_html
+mkdir /var/zpanel/hostdata/wbiadmin
+mkdir /var/zpanel/hostdata/wbiadmin/public_html
 mkdir /var/zpanel/logs
 mkdir /var/zpanel/logs/proftpd
 mkdir /var/zpanel/backups
@@ -299,7 +299,7 @@ sed -i "/symbolic-links=/a \secure-file-priv=/var/tmp" /etc/my.cnf
 
 # We'll store the passwords so that users can review them later if required.
 touch /root/passwords.txt;
-echo "zadmin Password: $zadminNewPass" >> /root/passwords.txt;
+echo "wbiadmin Password: $zadminNewPass" >> /root/passwords.txt;
 echo "MySQL Root Password: $password" >> /root/passwords.txt
 echo "MySQL Postfix Password: $postfixpassword" >> /root/passwords.txt
 echo "IP Address: $publicip" >> /root/passwords.txt
