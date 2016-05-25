@@ -261,7 +261,7 @@ mkdir /var/zpanel/temp
 cp -R . /etc/zpanel/panel/
 chmod -R 777 /etc/zpanel/
 chmod -R 777 /var/zpanel/
-chmod -R 770 /var/zpanel/hostdata/
+chmod -R 777 /var/zpanel/hostdata/
 chown -R apache:apache /var/zpanel/hostdata/
 chmod 644 /etc/zpanel/panel/etc/apps/phpmyadmin/config.inc.php
 ln -s /etc/zpanel/panel/bin/zppy /usr/bin/zppy
